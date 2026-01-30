@@ -12,6 +12,7 @@ app.use(morgan('dev'));
 
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/products', require('./routes/product.routes'));
-app.use('/api/orders', require('./routes/order.routes'));
+app.use('/api/cart', require('./routes/cart.routes'));
+
 
 module.exports = app;
