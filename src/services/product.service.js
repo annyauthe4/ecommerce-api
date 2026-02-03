@@ -1,7 +1,11 @@
 const Product = require('../models/Product');
+const { deleteFile } = require('../utils/file');
 
-exports.createProduct = async (data) => {
-  return Product.create(data);
+exports.createProduct = async (data, file) => {
+  const image = file
+    ? `/uploads/products/${file.filename}`
+    : null;
+  return Product.create(data, image);
 };
 
 exports.getAllProducts = async () => {
@@ -9,17 +13,25 @@ exports.getAllProducts = async () => {
 };
 
 exports.getProductById = async (id) => {
-  return Product.findById(id);
+  const product = await Product.findById(id);
+  if (!product) {
+    throw new Error('Product not found');
+  }
+  return product;
 };
 
-exports.updateProduct = async (id, data) => {
-  const product = await Product.findByIdAndUpdate(
-    id,
-    data,
-    {new: true, runValidators: true}
-  );
-
+exports.updateProduct = async (id, data, file) => {
+  const product = await Product.findById(id,);
   if(!product) throw new Error('Product not found');
+
+  if (file && product.image) {
+    deleteFile(product.image);
+    data.image = `/uploads/products/${file.filename}`;
+  }
+
+  Object.assign(product, data);
+  await product.save();
+
   return product;
 };
 
@@ -27,5 +39,8 @@ exports.deleteProduct = async (id) => {
   const product = await Product.findByIdAndDelete(id);
 
   if(!product) throw new Error('Product not found');
+  if (product.image) {
+    deleteFile(product.image);
+  }
   return product;
 };
