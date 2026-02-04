@@ -2,9 +2,10 @@
   "name": "ecommerce-api",
   "version": "1.0.0",
   "description": "An e-commerce web application built on Node.js with Express.js",
-  "main": "index.js",
+  "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/server.js"
   },
   "repository": {
     "type": "git"
@@ -20,7 +21,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
-    "express": "^5.2.1",
+    "express": "^4.19.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.21.1",
     "stripe": "^20.2.0"
