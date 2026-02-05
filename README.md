@@ -22,7 +22,7 @@ All endpoints are prefixed with: /api
 <h3> Authentication </h3>
 <h4>Register User</h4>
 <h4>POST</h4>
-/api/auth/register
+/api/auth/register <br></br>
 Request Body
 <code>
 {
@@ -35,14 +35,14 @@ Request Body
 Response
 <code>
 {
-  "token": "Bearer <JWT_TOKEN>",
+  "token": "Bearer JWT_TOKEN",
   "user": { ... }
 }
 </code>
 The returned token must be sent in the Authorization header for protected routes.
 <h4>Login User</h4>
 <h4>POST</h4>
-/api/auth/login
+/api/auth/login <br></br>
 Request Body
 <code>
 {
@@ -53,7 +53,7 @@ Request Body
 Response
 <code>
 {
-  "token": "Bearer <JWT_TOKEN>",
+  "token": "Bearer JWT_TOKEN",
   "user": { ... }
 }
 
@@ -62,7 +62,7 @@ Create Product (Admin Only)
 <b>POST</b>
 /api/products
 <b>AUTHORIZATION</b>
-<code>Bearer <ADMIN_TOKEN></code>
+<code>Bearer ADMIN_TOKEN</code><br></br>
 Request Body
 <code>
 {
@@ -78,20 +78,20 @@ Request Body
 <b>PUT/DELETE</b>
 <code>/api/products/:PRODUCT_ID</code>
 <b>AUTHORIZATION</b>
-<code>Bearer <ADMIN_TOKEN></code>
+<code>Bearer ADMIN_TOKEN</code>
 
 <h3> CART</h3>
 <b>Get / Cart</b>
 <b>POST / Add to Cart</b>
 <code>/api/cart</code>
 <b>AUTHORIZATION</b>
-<code>Bearer <USER_TOKEN></code>
+<code>Bearer USER_TOKEN</code>
 
 <b> Update or Remove Item from Cart</b>
 <b> PUT / DELETE</b>
 <code>/api/cart/:PRODUCT_ID</code>
 <b>AUTHORIZATION</b>
-<code>Bearer <USER_TOKEN></code>
+<code>Bearer USER_TOKEN</code>
 
 
 <h3> 📑 Orders</h3>
@@ -99,19 +99,19 @@ Request Body
 <b>POST</b>
 <code>/api/orders</code>
 <b>AUTHORIZATION</b>
-<code>Bearer <USER_TOKEN></code>
+<code>Bearer USER_TOKEN</code>
 
 <b>Get User Orders</b> 
 <b>Get</b>
 <code>/api/orders/my-orders</code>
 <b>AUTHORIZATION</b>
-<code>Bearer <USER_TOKEN></code>
+<code>Bearer USER_TOKEN</code>
 
 <b>Cancel Order (Pending Only)</b> 
 <b>PATCH</b>
 <code>/api/orders/:ORDER_ID/cancel</code>
 <b>AUTHORIZATION</b>
-<code>Bearer <USER_TOKEN></code>
+<code>Bearer USER_TOKEN</code>
 Only orders with status = pending can be canceled.
 Canceled orders automatically restock products.
 
@@ -121,7 +121,7 @@ Canceled orders automatically restock products.
  This error caused the application to crash during product update operations.
  <b>Root Cause</b>
  A typographical error in the route middleware definition:
- <code>router.put('/:id', protect.adminOnly, controller.updateProduct);</code> <br></br>
+ <code>router.put('/:id', protect.adminOnly, controller.updateProduct);</code> 
  <b>Correct</b>
  <code>router.put('/:id', protect, adminOnly, controller.updateProduct);</code>
 
