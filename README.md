@@ -1,50 +1,148 @@
-An e-commerce web application built on Node.js with Express.js
+<h1>E-Commerce API</h1>
 
-<h3><li> Validation: I used <code>express-validator</code> to ensure users don't send empty product names or negative prices.</li></h3>
+An e-commerce backend application built with Node.js and Express.js, providing authentication, product management, cart handling, and order processing.
 
-<h3><li>Logging: I used <code>morgan</code> to log incoming requests to your console.</li></h3>
+<h2>🛠️ Core Features & Middleware</h2>
+<h3>Validation</h3>
 
-<h3><li>Security: I used <code>helmet</code> to set secure HTTP headers.</li></h3>
+<li>Uses express-validator to validate incoming requests.</li>
 
-<h2>API base URL</h2>
-https://ecommerce-api-bgwl.onrender.com/api/auth/register: 
-This takes three arguments with 4th arg being optional (role: admin) default: user: 
-<code>"name": str, "email": str, "password": str</code>
-This returns a Bearer Token which will be used in the Authorization header
-<code>https://ecommerce-api-bgwl.onrender.com/api/auth/login</code>
-It takes two arguments: email and password
+<li>Prevents empty product titles, invalid emails, and negative prices.</li>
 
-<code>https://ecommerce-api-bgwl.onrender.com/api/products</code>
-This offers product creation only for admin users.
-Use Bearer Authorization token as an admin to create.
-Arguments: title: str, description: str, price: Number, stock: Number,
-images(optional): arrays of str, category: str
+<h3>Logging</h3>
 
-<code>https://ecommerce-api-bgwl.onrender.com/api/products/PRODUCT_ID</code>
-To delete and update product, use Bearer token in the Authorization header
+<li>Uses morgan to log incoming HTTP requests during development and production.</li>
 
-<code>https://ecommerce-api-bgwl.onrender.com/api/cart</code>
-Use user token for Authorization
+<h3>Security</h3>
 
-<code>https://ecommerce-api-bgwl.onrender.com/api/cart/PRODUCT_ID</code>
-To update and delete product from cart
+<li>Uses helmet to set secure HTTP headers and reduce common web vulnerabilities.</li>
 
-<code>https://ecommerce-api-bgwl.onrender.com/api/orders</code>
-Use user Authorization token in the header
+<li>JWT-based authentication for protected routes.</li>
 
-<code>https://ecommerce-api-bgwl.onrender.com/api/orders/my-orders</code>
-To get user order
+<h2>Base URL</h2>
+<a href="https://ecommerce-api-bgwl.onrender.com">https://ecommerce-api-bgwl.onrender.com</a>
 
-<code>https://ecommerce-api-bgwl.onrender.com/api/orders/:ORDER_ID/cancel</code>
-To cancel pending order only
+All endpoints are prefixed with: /api
 
-<h2> Challenges</h2>
+<h3> Authentication </h3>
+<h4>Register User</h4>
+<h4>POST</h4>
+/api/auth/register
+<h5>Request Body</h5>
+<code>
+{
+  "name": "string",
+  "email": "string",
+  "password": "string",
+  "role": "admin" // optional, defaults to "user"
+}
+</code>
+<h5>Response</h5>
+
+<code>
+{
+  "token": "Bearer <JWT_TOKEN>",
+  "user": { ... }
+}
+</code>
+<h5>The returned token must be sent in the Authorization header for protected routes.</h5>
+<h4>Login User</h4>
+<h4>POST</h4>
+/api/auth/login
+<h5>Request Body</h5>
+<code>
+{
+  "email": "string",
+  "password": "string"
+}
+</code>
+<h5>Response</h5>
+
+<code>
+{
+  "token": "Bearer <JWT_TOKEN>",
+  "user": { ... }
+}
+
+<h3> Products </h3>
+<h4>Create Product (Admin Only)</h4>
+<h4>POST</h4>
+/api/products
+<h4>AUTHORIZATION</h4>
+<code>Bearer <ADMIN_TOKEN></code>
+<h5>Request Body</h5>
+<code>
+{
+  "title": "string",
+  "description": "string",
+  "price": 1000,
+  "stock": 20,
+  "category": "string",
+  "images": ["string"] // optional
+}
+</code>
+
+<h4>Update or delete Product (Admin Only)</h4>
+<h4>PUT/DELETE</h4>
+<code>/api/products/:PRODUCT_ID</code>
+<h4>AUTHORIZATION</h4>
+<code>Bearer <ADMIN_TOKEN></code>
+
+<h3> CART</h3>
+<h4>Get / Cart</h4>
+<h4>POST / Add to Cart</h4>
+<code>/api/cart</code>
+<h4>AUTHORIZATION</h4>
+
+<code>Bearer <USER_TOKEN></code>
+
+<h4> Update or Remove Item from Cart</h4>
+<h4> PUT / DELETE</h4>
+<code>/api/cart/:PRODUCT_ID</code>
+<h4>AUTHORIZATION</h4>
+
+<code>Bearer <USER_TOKEN></code>
+
+
+<h3> 📑 Orders</h3>
+<h4>Create Order (Convert Cart → Order)</h4>
+<h4>POST</h4>
+<code>/api/orders</code>
+<h4>AUTHORIZATION</h4>
+<code>Bearer <USER_TOKEN></code>
+
+<h4>Get User Orders</h4> 
+<h4>Get</h4>
+<code>/api/orders/my-orders</code>
+<h4>AUTHORIZATION</h4>
+<code>Bearer <USER_TOKEN></code>
+
+<h4>Cancel Order (Pending Only)</h4> 
+<h4>PATCH</h4>
+<code>/api/orders/:ORDER_ID/cancel</code>
+<h4>AUTHORIZATION</h4>
+<code>Bearer <USER_TOKEN></code>
+Only orders with status = pending can be canceled.
+Canceled orders automatically restock products.
+
+<h2> Challenges Faced</h2>
+<h5>Error Encountered</h5>
 <code>throw new TypeError('argument handler must be a function')</code>
- The error was crashing the app simply because of some typographical errors in the router I used to edit product.
- <h3>How I fixed it</h3>
- After reading the error message, I was able to trace the line of code that caused the crash i.e 
+ This error caused the application to crash during product update operations.
+ <h5>Root Cause</h5>
+ A typographical error in the route middleware definition:
  <code>router.put('/:id', protect.adminOnly, controller.updateProduct);</code> <br></br>
- instead of <code>router.put('/:id', protect, adminOnly, controller.updateProduct);</code>
+ <h3>Correct</h3>
+ <code>router.put('/:id', protect, adminOnly, controller.updateProduct);</code>
 
- Why did that happen? I was already feeling sleepy the night I implemented the update and delete product. In fact, it was when I discovered I was typing nonsense that I had to hibernate my system that night.
- I tried testing the logic the next day and saw that I had (res, res) in one of the callback functions instead of (req, res).
+ <h3>Resolution</h3>
+ <li>Carefully reviewed the stack trace to identify the faulty route.</li>
+ <li>Corrected middleware usage.</li>
+ <li>Fixed additional callback mistakes such as using (res, res) instead of (req, res).</li>
+
+ <h3>🚀 Future Improvements</h3>
+ <li>Payment integration (Stripe)</li>
+ <li>Order status tracking</li>
+ <li>Admin dashboard</li>
+ <li>API documentation with Swagger</li>
+ <li>API documentation with Swagger</li>
