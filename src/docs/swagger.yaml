@@ -1,0 +1,435 @@
+openapi: 3.0.3
+info:
+  title: E-Commerce API
+  version: 1.0.0
+  description: REST API for an e-commerce backend built with Node.js and Express.
+
+servers:
+  - url: http://localhost:5000
+    description: Local Development
+  - url: https://ecommerce-api-bgwl.onrender.com
+    description: Production
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    Product:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        stock:
+          type: integer
+        category:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+
+    CartItem:
+      type: object
+      properties:
+        product:
+          $ref: '#/components/schemas/Product'
+        quantity:
+          type: integer
+
+    Cart:
+      type: object
+      properties:
+        user:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+
+    Order:
+      type: object
+      properties:
+        _id:
+          type: string
+        user:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        totalAmount:
+          type: number
+        status:
+          type: string
+          enum: [pending, paid, shipped, delivered, cancelled]
+
+paths:
+
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum: [user, admin]
+                  default: user
+      responses:
+        201:
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        400:
+          description: Validation or registration error
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        400:
+          description: Invalid credentials
+
+  /api/products:
+    get:
+      tags: [Products]
+      summary: Get all products
+      responses:
+        200:
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+
+    post:
+      tags: [Products]
+      summary: Create product (Admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required: [title, description, price, stock, category]
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                stock:
+                  type: integer
+                category:
+                  type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        201:
+          description: Product created
+        401:
+          description: Unauthorized
+        403:
+          description: Admin access required
+
+  /api/products/{productId}:
+    put:
+      tags: [Products]
+      summary: Update product (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: iPhone 15
+                price:
+                  type: number
+                  example: 999.99
+                description:
+                  type: string
+                  example: Latest Apple smartphone
+                countInStock:
+                  type: integer
+                  example: 25
+                category:
+                  type: string
+                  example: Electronics
+      responses:
+        200:
+          description: Product updated
+        404:
+          description: Product not found
+
+    delete:
+      tags: [Products]
+      summary: Delete product (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Product deleted
+        404:
+          description: Product not found
+
+  /api/cart:
+    get:
+      tags: [Cart]
+      summary: Get user cart
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: User cart returned
+
+    post:
+      tags: [Cart]
+      summary: Add product to cart
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              required: [productId, quantity]
+              type: object
+              properties:
+                productId:
+                  type: string
+                quantity:
+                  type: integer
+      responses:
+        200:
+          description: Item added to cart
+
+  /api/cart/{productId}:
+    put:
+      tags: [Cart]
+      summary: Update cart item quantity
+      description: Updates the quantity of a specific product already in the authenticated user's cart.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: ID of the product in the cart
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quantity
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+                  example: 3
+        responses:
+          200:
+            description: Cart item updated successfully
+          400:
+            description: Invalid quantity supplied
+          401:
+            description: Unauthorized
+          404:
+            description: Product not found in cart
+          responses:
+          
+      delete:
+        tags: [Cart]
+        summary: Remove item from cart
+        security:
+          - bearerAuth: []
+        parameters:
+          - name: productId
+            in: path
+            required: true
+            schema:
+              type: string
+        responses:
+          200:
+            description: Item removed from cart
+
+  /api/orders:
+    post:
+      tags: [Orders]
+      summary: Create order from cart
+      security:
+        - bearerAuth: []
+      responses:
+        201:
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Created order object
+        400:
+          description: Bad request (e.g. cart empty)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Cart is empty
+
+  /api/orders/my-orders:
+    get:
+      tags:
+        - Orders
+      summary: Get logged-in user orders
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: List of user orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        500:
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
+
+  /api/orders/{orderId}:
+  put:
+    tags:
+      - Orders
+    summary: Cancel an order
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      200:
+        description: Order cancelled successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: Order cancelled successfully
+                order:
+                  type: object
+      400:
+        description: Bad request (invalid order or already cancelled)
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: Cannot cancel this order
