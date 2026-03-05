@@ -1,8 +1,9 @@
 const CartService = require('../services/cart.service');
+const { cartToDTO } = require('../dtos/cart.dto');
 
 exports.getCart = async (req, res) => {
   const cart = await CartService.getUserCart(req.user.id);
-  res.json(cart || { items: [] });
+  res.json(cartToDTO(cart) || { items: [] });
 };
 
 exports.addItem = async (req, res) => {
@@ -13,7 +14,7 @@ exports.addItem = async (req, res) => {
       productId,
       quantity
     );
-    res.status(201).json(cart);
+    res.status(201).json(cartToDTO(cart));
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -26,7 +27,7 @@ exports.updateItem = async (req, res) => {
       req.params.productId,
       req.body.quantity
     );
-    res.json(cart);
+    res.json(cartToDTO(cart));
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -38,7 +39,7 @@ exports.removeItem = async (req, res) => {
       req.user.id,
       req.params.productId
     );
-    res.json(cart);
+    res.json(cartToDTO(cart));
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
