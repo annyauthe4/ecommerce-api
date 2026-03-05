@@ -9,6 +9,7 @@ servers:
     description: Production
 
 components:
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -17,10 +18,10 @@ components:
 
   schemas:
 
-    User:
+    UserDTO:
       type: object
       properties:
-        _id:
+        id:
           type: string
         name:
           type: string
@@ -29,6 +30,9 @@ components:
         role:
           type: string
           enum: [user, admin]
+        createdAt:
+          type: string
+          format: date-time
 
     AuthResponse:
       type: object
@@ -36,12 +40,12 @@ components:
         token:
           type: string
         user:
-          $ref: '#/components/schemas/User'
+          $ref: '#/components/schemas/UserDTO'
 
-    Product:
+    ProductDTO:
       type: object
       properties:
-        _id:
+        id:
           type: string
         title:
           type: string
@@ -57,41 +61,64 @@ components:
           type: array
           items:
             type: string
+        createdAt:
+          type: string
+          format: date-time
 
-    CartItem:
+    CartItemDTO:
       type: object
       properties:
         product:
-          $ref: '#/components/schemas/Product'
+          $ref: '#/components/schemas/ProductDTO'
         quantity:
           type: integer
 
-    Cart:
+    CartDTO:
       type: object
       properties:
+        id:
+          type: string
         user:
           type: string
         items:
           type: array
           items:
-            $ref: '#/components/schemas/CartItem'
+            $ref: '#/components/schemas/CartItemDTO'
+        createdAt:
+          type: string
+          format: date-time
 
-    Order:
+    OrderItemDTO:
       type: object
       properties:
-        _id:
+        product:
+          $ref: '#/components/schemas/ProductDTO'
+        quantity:
+          type: integer
+        price:
+          type: number
+        subtotal:
+          type: number
+
+    OrderDTO:
+      type: object
+      properties:
+        id:
           type: string
         user:
           type: string
         items:
           type: array
           items:
-            $ref: '#/components/schemas/CartItem'
+            $ref: '#/components/schemas/OrderItemDTO'
         totalAmount:
           type: number
         status:
           type: string
           enum: [pending, paid, shipped, delivered, cancelled]
+        createdAt:
+          type: string
+          format: date-time
 
 paths:
 
@@ -125,7 +152,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
         400:
-          description: Validation or registration error
+          description: Registration error
 
   /api/auth/login:
     post:
@@ -165,7 +192,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Product'
+                  $ref: '#/components/schemas/ProductDTO'
 
     post:
       tags: [Products]
@@ -177,8 +204,8 @@ paths:
         content:
           application/json:
             schema:
-              required: [title, description, price, stock, category]
               type: object
+              required: [title, description, price, stock, category]
               properties:
                 title:
                   type: string
@@ -221,24 +248,23 @@ paths:
             schema:
               type: object
               properties:
-                name:
+                title:
                   type: string
-                  example: iPhone 15
-                price:
-                  type: number
-                  example: 999.99
                 description:
                   type: string
-                  example: Latest Apple smartphone
-                countInStock:
+                price:
+                  type: number
+                stock:
                   type: integer
-                  example: 25
                 category:
                   type: string
-                  example: Electronics
       responses:
         200:
           description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDTO'
         404:
           description: Product not found
 
@@ -262,12 +288,16 @@ paths:
   /api/cart:
     get:
       tags: [Cart]
-      summary: Get user cart
+      summary: Get logged-in user cart
       security:
         - bearerAuth: []
       responses:
         200:
           description: User cart returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartDTO'
 
     post:
       tags: [Cart]
@@ -279,8 +309,8 @@ paths:
         content:
           application/json:
             schema:
-              required: [productId, quantity]
               type: object
+              required: [productId, quantity]
               properties:
                 productId:
                   type: string
@@ -289,19 +319,21 @@ paths:
       responses:
         200:
           description: Item added to cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartDTO'
 
   /api/cart/{productId}:
     put:
       tags: [Cart]
       summary: Update cart item quantity
-      description: Updates the quantity of a specific product already in the authenticated user's cart.
       security:
         - bearerAuth: []
       parameters:
         - name: productId
           in: path
           required: true
-          description: ID of the product in the cart
           schema:
             type: string
       requestBody:
@@ -310,38 +342,39 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - quantity
+              required: [quantity]
               properties:
                 quantity:
                   type: integer
                   minimum: 1
-                  example: 3
-        responses:
-          200:
-            description: Cart item updated successfully
-          400:
-            description: Invalid quantity supplied
-          401:
-            description: Unauthorized
-          404:
-            description: Product not found in cart
-          responses:
-          
-      delete:
-        tags: [Cart]
-        summary: Remove item from cart
-        security:
-          - bearerAuth: []
-        parameters:
-          - name: productId
-            in: path
-            required: true
-            schema:
-              type: string
-        responses:
-          200:
-            description: Item removed from cart
+      responses:
+        200:
+          description: Cart updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartDTO'
+        404:
+          description: Product not in cart
+
+    delete:
+      tags: [Cart]
+      summary: Remove item from cart
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Item removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartDTO'
 
   /api/orders:
     post:
@@ -355,37 +388,41 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                description: Created order object
+                $ref: '#/components/schemas/OrderDTO'
         400:
-          description: Bad request (e.g. cart empty)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Cart is empty
+          description: Cart empty
 
   /api/orders/my-orders:
     get:
-      tags:
-        - Orders
+      tags: [Orders]
       summary: Get logged-in user orders
       security:
         - bearerAuth: []
       responses:
         200:
-          description: List of user orders
+          description: List of orders
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: object
-        500:
-          description: Server error
+                  $ref: '#/components/schemas/OrderDTO'
+
+  /api/orders/{orderId}:
+    put:
+      tags: [Orders]
+      summary: Cancel order
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Order cancelled successfully
           content:
             application/json:
               schema:
@@ -393,41 +430,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: Internal server error
-
-  /api/orders/{orderId}:
-  put:
-    tags:
-      - Orders
-    summary: Cancel an order
-    security:
-      - bearerAuth: []
-    parameters:
-      - name: orderId
-        in: path
-        required: true
-        schema:
-          type: string
-    responses:
-      200:
-        description: Order cancelled successfully
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
-                  example: Order cancelled successfully
-                order:
-                  type: object
-      400:
-        description: Bad request (invalid order or already cancelled)
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
-                  example: Cannot cancel this order
+                  order:
+                    $ref: '#/components/schemas/OrderDTO'
+        400:
+          description: Cannot cancel order
