@@ -9,7 +9,7 @@ router.get('/', controller.getProducts);
 router.get('/:id', controller.getProduct);
 
 router.put('/:id', protect, adminOnly, upload.single('image'), controller.updateProduct);
-router.delete('/:id', adminOnly, controller.deleteProduct);
+router.delete('/:id', protect, adminOnly, controller.deleteProduct);
 
 
 module.exports = router;
