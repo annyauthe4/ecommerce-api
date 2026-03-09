@@ -1,5 +1,4 @@
 const ProductService = require('../services/product.service');
-const { productToDTO, productsToDTO } = require('../dtos/product.dto');
 
 exports.createProduct = async (req, res) => {
   try {
@@ -7,7 +6,7 @@ exports.createProduct = async (req, res) => {
       req.body,
       req.file
     );
-    res.status(201).json(productToDTO(product));
+    res.status(201).json(product);
   } catch (err) {
     next(err);
   }
@@ -16,7 +15,7 @@ exports.createProduct = async (req, res) => {
 exports.getProducts = async (req, res, next) => {
   try {
     const products = await ProductService.getAllProducts();
-    res.json(productsToDTO(products));
+    res.json(products);
   } catch (err) {
     next(err);
   }
@@ -25,7 +24,7 @@ exports.getProducts = async (req, res, next) => {
 exports.getProduct = async (req, res, next) => {
   try {
     const product = await ProductService.getProductById(req.params.id);
-    res.json(productToDTO(product));
+    res.json(product);
   } catch (err) {
     next(err);
   }
@@ -39,7 +38,7 @@ exports.updateProduct = async (req, res, next) => {
       req.body,
       req.file
     );
-    res.json(productToDTO(product));
+    res.json(product);
   } catch (err) {
     next(err);
   }
