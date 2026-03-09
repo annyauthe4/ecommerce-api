@@ -1,3 +1,5 @@
+const { productToDTO } = require('../dtos/product.dto');
+
 exports.cartToDTO = (cart) => {
   let totalPrice = 0;
 
@@ -8,7 +10,7 @@ exports.cartToDTO = (cart) => {
     totalPrice += subtotal;
 
     return {
-      product: mapProduct(item.product),
+      product: item.product ? productToDTO(item.product) : null,
       quantity: item.quantity,
       subtotal
     };
