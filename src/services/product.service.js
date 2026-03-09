@@ -1,15 +1,22 @@
 const Product = require('../models/Product');
 const { deleteFile } = require('../utils/file');
+const { productToDTO, productsToDTO } = require('../dtos/product.dto');
 
 exports.createProduct = async (data, file) => {
   const image = file
     ? `/uploads/products/${file.filename}`
     : null;
-  return Product.create(data, image);
+  const product = await Product.create(data, image);
+  return {
+    product: productToDTO(product)
+  };
 };
 
 exports.getAllProducts = async () => {
-  return Product.find();
+  const products = await Product.find();
+  return {
+    products: productsToDTO(products)
+  };
 };
 
 exports.getProductById = async (id) => {
@@ -17,7 +24,9 @@ exports.getProductById = async (id) => {
   if (!product) {
     throw new Error('Product not found');
   }
-  return product;
+  return {
+    product: productToDTO(product)
+  };
 };
 
 exports.updateProduct = async (id, data, file) => {
@@ -32,7 +41,9 @@ exports.updateProduct = async (id, data, file) => {
   Object.assign(product, data);
   await product.save();
 
-  return product;
+  return {
+    product: productToDTO(product)
+  };
 };
 
 exports.deleteProduct = async (id) => {
@@ -42,5 +53,7 @@ exports.deleteProduct = async (id) => {
   if (product.image) {
     deleteFile(product.image);
   }
-  return product;
+  return {
+    product: productToDTO(product)
+  };
 };

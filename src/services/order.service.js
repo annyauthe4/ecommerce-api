@@ -1,5 +1,6 @@
 const Cart = require('../models/Cart');
 const Order = require('../models/Order');
+const { orderToDTO } = require('../dtos/order.dto');
 
 exports.createOrderFromCart = async (userId) => {
   const cart = await Cart.findOne({ user: userId }).populate('items.product');
@@ -33,7 +34,9 @@ exports.createOrderFromCart = async (userId) => {
   cart.items = [];
   await cart.save();
 
-  return order;
+  return {
+    order: orderToDTO(order)
+  };
 };
 
 exports.getUserOrders = async (userId) => {
@@ -77,7 +80,9 @@ exports.cancelOrder = async (userId, orderId) => {
     await session.commitTransaction();
     session.endSession();
 
-    return order;
+    return {
+      order: orderToDTO(order)
+    };
   } catch (err) {
     await session.abortTransaction();
     session.endSession();

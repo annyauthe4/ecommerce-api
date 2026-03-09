@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const { hashPassword, comparePassword } = require('../utils/hash');
 const { signToken } = require('../utils/jwt');
+const { userToDTO } = require('../dtos/user.dto');
 
 exports.register = async (data) => {
   if (!data.email || !data.password) {
@@ -12,13 +13,10 @@ exports.register = async (data) => {
 
   data.password = await hashPassword(data.password);
   const user = await User.create(data);
-
-  const userObj = user.toObject();
-  delete userObj.password;
-
+  
   return {
-    token: signToken({ id: user._id, role: user.role }),
-    user: userObj
+    token: signToken({ id: user._id.toString(), role: user.role }),
+    user: userToDTO(user)
   };
 };
 
@@ -32,11 +30,8 @@ exports.login = async ({ email, password }) => {
   const match = await comparePassword(password, user.password);
   if (!match) throw new Error('Invalid credentials');
 
-  const userObj = user.toObject();
-  delete userObj.password;
-
   return {
-    token: signToken({ id: user._id, role: user.role }),
-    user: userObj
+    token: signToken({ id: user._id.toString(), role: user.role }),
+    user: userToDTO(user)
   };
 };
