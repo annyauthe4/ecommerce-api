@@ -1,10 +1,10 @@
 const ProductService = require('../services/product.service');
 
-exports.createProduct = async (req, res) => {
+exports.createProduct = async (req, res, next) => {
   try {
     const product = await ProductService.createProduct(
       req.body,
-      req.file
+      req.files
     );
     res.status(201).json(product);
   } catch (err) {
@@ -36,7 +36,7 @@ exports.updateProduct = async (req, res, next) => {
     const product = await ProductService.updateProduct(
       req.params.id,
       req.body,
-      req.file
+      req.files
     );
     res.json(product);
   } catch (err) {
