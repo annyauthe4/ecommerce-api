@@ -2,11 +2,21 @@ const Product = require('../models/Product');
 const { deleteFile } = require('../utils/file');
 const { productToDTO, productsToDTO } = require('../dtos/product.dto');
 
-exports.createProduct = async (data, file) => {
-  const image = file
-    ? `/uploads/products/${file.filename}`
-    : null;
-  const product = await Product.create(data, image);
+const mapImagePaths = (files = []) => {
+  return files.map((file) => `/uploads/products/${file.filename}`);
+};
+
+exports.createProduct = async (data, files) => {
+  const images = mapImagePaths(files);
+
+  const productData = {
+    ...data,
+    price: Number(data.price),
+    stock: Number(data.stock),
+    images: images
+  };
+
+  const product = await Product.create(productData);
   return {
     product: productToDTO(product)
   };
@@ -29,13 +39,15 @@ exports.getProductById = async (id) => {
   };
 };
 
-exports.updateProduct = async (id, data, file) => {
+exports.updateProduct = async (id, data, files) => {
   const product = await Product.findById(id,);
   if(!product) throw new Error('Product not found');
 
-  if (file && product.image) {
-    deleteFile(product.image);
-    data.image = `/uploads/products/${file.filename}`;
+  if (files && files.length > 0) {
+    if (product.images && product.images.length > 0) {
+      product.images.forEach((imagePath) => deleteFile(imagePath));
+    }
+    data.images = mapImagePaths(files);
   }
 
   Object.assign(product, data);

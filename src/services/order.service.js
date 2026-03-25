@@ -1,50 +1,90 @@
+const mongoose = require('mongoose');
 const Cart = require('../models/Cart');
 const Order = require('../models/Order');
-const { orderToDTO } = require('../dtos/order.dto');
+const Product = require('../models/Product');
+const { orderToDTO, ordersToDTO } = require('../dtos/order.dto');
 
 exports.createOrderFromCart = async (userId) => {
-  const cart = await Cart.findOne({ user: userId }).populate('items.product');
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  if (!cart || cart.items.length === 0) {
-    throw new Error('Cart is empty');
+  try {
+    const cart = await Cart.findOne({ user: userId })
+      .populate('items.product')
+      .session(session);
+
+    if (!cart || cart.items.length === 0) {
+      throw new Error('Cart is empty');
+    }
+
+    let totalAmount = 0;
+
+    const orderItems = [];
+
+    for (const item of cart.items) {
+      if (!item.product) {
+        throw new Error('Product not found');
+      }
+
+      if (item.quantity > item.product.stock) {
+        throw new Error(
+          `Only ${item.product.stock} item(s) available for ${item.product.title}`
+        );
+      }
+
+      const unitPrice = Number(item.product.price);
+      const lineTotal = unitPrice * item.quantity;
+
+      totalAmount += lineTotal;
+
+      orderItems.push({
+        product: item.product._id,
+        quantity: item.quantity,
+        price: unitPrice
+      });
+
+      await Product.findByIdAndUpdate(
+        item.product._id,
+        { $inc: { stock: -item.quantity } },
+        { session }
+      );
+    }
+
+    const order = await Order.create(
+      [
+        {
+          user: userId,
+          items: orderItems,
+          totalAmount
+        }
+      ],
+      { session }
+    );
+
+    cart.items = [];
+    await cart.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return orderToDTO(order[0]);
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    throw err;
   }
-
-  let totalAmount = 0;
-
-  const orderItems = cart.items.map(item => {
-    const unitPrice = Number(item.product.price);
-    const lineTotal = unitPrice * item.quantity;
-    totalAmount += lineTotal;
-
-    return {
-      product: item.product._id,
-      quantity: item.quantity,
-      price: unitPrice,
-      subtotal: lineTotal
-    };
-  });
-
-  const order = await Order.create({
-    user: userId,
-    items: orderItems,
-    totalAmount
-  });
-
-  // Clear cart after order creation
-  cart.items = [];
-  await cart.save();
-
-  return {
-    order: orderToDTO(order)
-  };
 };
 
 exports.getUserOrders = async (userId) => {
-  return Order.find({ user: userId })
-    .populate('items.product')
+  const orders = await Order.find({ user: userId })
+    .populate({
+      path: 'items.product',
+      select: 'title price description category images stock createdAt'
+    })
     .sort({ createdAt: -1 });
-};
 
+  return ordersToDTO(orders);
+};
 
 exports.cancelOrder = async (userId, orderId) => {
   const session = await mongoose.startSession();
@@ -64,7 +104,6 @@ exports.cancelOrder = async (userId, orderId) => {
       throw new Error('Order cannot be cancelled');
     }
 
-    // Restock products
     for (const item of order.items) {
       await Product.findByIdAndUpdate(
         item.product,
@@ -73,16 +112,13 @@ exports.cancelOrder = async (userId, orderId) => {
       );
     }
 
-    // Update order status
     order.status = 'cancelled';
     await order.save({ session });
 
     await session.commitTransaction();
     session.endSession();
 
-    return {
-      order: orderToDTO(order)
-    };
+    return orderToDTO(order);
   } catch (err) {
     await session.abortTransaction();
     session.endSession();

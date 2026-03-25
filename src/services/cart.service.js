@@ -17,12 +17,20 @@ exports.getUserCart = async (userId) => {
 };
 
 exports.addToCart = async (userId, productId, quantity = 1) => {
+  if (quantity < 1) {
+    throw new Error('Quantity must be at least one');
+  }
+
   const product = await Product.findById(productId);
   if (!product) throw new Error('Product not found');
 
   let cart = await Cart.findOne({ user: userId });
 
   if (!cart) {
+    if (quantity > product.stock) {
+      throw new Error(`Only ${product.stock} item(s) available in stock`);
+    }
+
     cart = await Cart.create({
       user: userId,
       items: [{ product: productId, quantity }]
@@ -39,8 +47,16 @@ exports.addToCart = async (userId, productId, quantity = 1) => {
   );
 
   if (itemIndex > -1) {
-    cart.items[itemIndex].quantity += quantity;
+    const newQuantity = cart.items[itemIndex].quantity + quantity;
+
+    if (newQuantity > product.stock) {
+      throw new Error(`Only ${product.stock} item(s) available in stock`);
+    }
+    cart.items[itemIndex].quantity = newQuantity;
   } else {
+    if (quantity > product.stock) {
+      throw new Error(`Only ${product.stock} item(s) available in stock`);
+    }
     cart.items.push({ product: productId, quantity });
   }
 
@@ -53,6 +69,10 @@ exports.addToCart = async (userId, productId, quantity = 1) => {
 };
 
 exports.updateCartItem = async (userId, productId, quantity) => {
+  if (quantity < 1) {
+    throw new Error('Quantity must be at least one');
+  }
+
   const cart = await Cart.findOne({ user: userId });
   if (!cart) throw new Error('Cart not found');
 
@@ -60,6 +80,15 @@ exports.updateCartItem = async (userId, productId, quantity) => {
     (i) => i.product.toString() === productId
   );
   if (!item) throw new Error('Item not in cart');
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    throw new Error('Product not found');
+  }
+
+  if (quantity > product.stock) {
+    throw new Error(`Only ${product.stock} item(s) available in stock`);
+  }
 
   item.quantity = quantity;
   await cart.save();
