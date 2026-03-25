@@ -5,7 +5,7 @@ exports.productToDTO = (product) => {
     description: product.description,
     price: product.price,
     stock: product.stock,
-    images: product.images,
+    images: product.images || [],
     category: product.category,
     createdAt: product.createdAt
   };
