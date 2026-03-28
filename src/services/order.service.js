@@ -75,15 +75,64 @@ exports.createOrderFromCart = async (userId) => {
   }
 };
 
-exports.getUserOrders = async (userId) => {
-  const orders = await Order.find({ user: userId })
-    .populate({
-      path: 'items.product',
-      select: 'title price description category images stock createdAt'
-    })
-    .sort({ createdAt: -1 });
+// exports.getUserOrders = async (userId, userRole) => {
+//   const query = userRole === 'admin' ? {} : { user: userId };
 
-  return ordersToDTO(orders);
+//   const orders = await Order.find(query)
+//     .populate({
+//       path: 'user',
+//       select: 'name email'
+//     })
+//     .populate({
+//       path: 'items.product',
+//       select: 'images'
+//     })
+//     .sort({ createdAt: -1 })
+//     .lean();
+
+//   return ordersToDTO(orders);
+// };
+
+exports.getOrderById = async (userId, orderId, userRole) => {
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    throw new Error('Invalid order ID format');
+  }
+
+  const order = await Order.findById(orderId)
+    .populate('items.product', 'title price images')
+    .populate('user', 'name email');
+
+  if (!order) {
+    throw new Error('Order not found');
+  }
+
+  if (userRole !== 'admin' && order.user._id.toString() !== userId.toString()) {
+    throw new Error('Unauthorized: You do not own this order');
+  }
+
+  return orderToDTO(order);
+}
+
+exports.getOrders = async (filter = {}, page = 1, limit = 10) => {
+  const skip = (page - 1) * limit;
+
+  const orders = await Order.find(filter)
+    .populate('items.product', 'title price')
+    .populate('user', 'name email')
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Order.countDocuments();
+  
+  return {
+    orders: ordersToDTO(orders),
+    pagination: {
+      total,
+      page,
+      pages: Math.ceil(total / limit)
+    }
+  };
 };
 
 exports.cancelOrder = async (userId, orderId) => {
