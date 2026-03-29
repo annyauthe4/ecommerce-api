@@ -521,7 +521,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Order'
+                $ref: '#/components/schemas/OrderDTO'
         400:
           description: Invalid Order ID format
           content:
@@ -581,7 +581,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Order'
+                  $ref: '#/components/schemas/OrderDTO'
         '403':
           description: Forbidden - Admin role required
 
