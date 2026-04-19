@@ -5,6 +5,8 @@ info:
   description: REST API for an e-commerce backend built with Node.js and Express.
 
 servers:
+  - url: http://localhost:5000
+    description: Local Development Server
   - url: https://ecommerce-api-bgwl.onrender.com
     description: Production
 
@@ -218,16 +220,45 @@ paths:
   /api/products:
     get:
       tags: [Products]
-      summary: Get all products
+      summary: Get all products with pagination
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
       responses:
         200:
-          description: List of products
+          description: Success
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ProductDTO'
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductDTO'
+                  pagination:
+                    type: object
+                    properties:
+                      total: { type: interger }
+                      page: { type: integer }
+                      limit: { type: integer }
+                      pages: { type: integer }
 
     post:
       tags: [Products]
@@ -277,7 +308,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/products/{productId}:
+  /api/products/{id}:
+    get:
+      tags: [Products]
+      summary: Get a single product by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The MongoDB ObjectId of the product
+          schema:
+            type: string
+            example: "65f1a2b3c4d5e6f7a8b9c0d1"
+      responses:
+        200:
+          description: Product details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDTO'
+        404:
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/products/{id}:
     put:
       tags: [Products]
       summary: Update product (Admin only)
