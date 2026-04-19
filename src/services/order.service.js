@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Cart = require('../models/Cart');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const sendEmail = require('../utils/email')
 const { orderToDTO, ordersToDTO } = require('../dtos/order.dto');
 
 exports.createOrderFromCart = async (userId) => {
