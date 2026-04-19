@@ -10,7 +10,7 @@ exports.createOrderFromCart = async (userId) => {
 
   try {
     const cart = await Cart.findOne({ user: userId })
-      .populate('items.product')
+      .populate('items.product', 'title price images stock')
       .session(session);
 
     if (!cart || cart.items.length === 0) {
@@ -22,14 +22,20 @@ exports.createOrderFromCart = async (userId) => {
     const orderItems = [];
 
     for (const item of cart.items) {
-      if (!item.product) {
-        throw new Error('Product not found');
+      if (!item.product || !item.product._id) {
+        throw new Error('Product data is missing from cart');
       }
+      const result = await Product.findOneAndUpdate(
+        {
+          _id: item.product._id,
+          stock: { $gte: item.quantity }
+        },
+        { $inc: { stock: -item.quantity } },
+        { session, new: true }
+      );
 
-      if (item.quantity > item.product.stock) {
-        throw new Error(
-          `Only ${item.product.stock} item(s) available for ${item.product.title}`
-        );
+      if (!result) {
+        throw new Error(`Only ${item.product.stock} left for ${item.product.title}`);
       }
 
       const unitPrice = Number(item.product.price);
@@ -39,23 +45,19 @@ exports.createOrderFromCart = async (userId) => {
 
       orderItems.push({
         product: item.product._id,
+        title: item.product.title,
         quantity: item.quantity,
         price: unitPrice
       });
-
-      await Product.findByIdAndUpdate(
-        item.product._id,
-        { $inc: { stock: -item.quantity } },
-        { session }
-      );
     }
 
-    const order = await Order.create(
+    const [order] = await Order.create(
       [
         {
           user: userId,
           items: orderItems,
-          totalAmount
+          totalAmount,
+          status: 'pending'
         }
       ],
       { session }
@@ -65,13 +67,23 @@ exports.createOrderFromCart = async (userId) => {
     await cart.save({ session });
 
     await session.commitTransaction();
-    session.endSession();
 
-    return orderToDTO(order[0]);
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: `Order Confirmed! Order #${order._id}`,
+        message: `Hi! Your oder for $${totalAmount} has been placed successfully.`
+      });
+    } catch (emailErr) {
+      console.error('Email failed to send', emailErr);
+    }
+
+    return orderToDTO(order);
   } catch (err) {
     await session.abortTransaction();
-    session.endSession();
     throw err;
+  } finally {
+    session.endSession();
   }
 };
 
