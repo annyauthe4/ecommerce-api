@@ -42,7 +42,7 @@ exports.getOrder = async (req, res, next) => {
   }
 };
 
-exports.getAllOrders = async (req, res) => {
+exports.getAllOrders = async (req, res, next) => {
   try {
     filter = {}
     const page = parseInt(req.query.page) || 1;
