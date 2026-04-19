@@ -33,4 +33,7 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+productSchema.index({ title: 'text' });
+productSchema.index({ category: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Product', productSchema);
