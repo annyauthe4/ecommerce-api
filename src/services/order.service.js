@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const sendEmail = require('../utils/email');
 const { orderToDTO, ordersToDTO } = require('../dtos/order.dto');
+const User = require('../models/User');
 
 exports.createOrderFromCart = async (userId) => {
   const session = await mongoose.startSession();
@@ -68,23 +69,21 @@ exports.createOrderFromCart = async (userId) => {
     await cart.save({ session });
 
     await session.commitTransaction();
+    session.endSession();
 
-    try {
-      await sendEmail({
-        email: user.email,
-        subject: `Order Confirmed! Order #${order._id}`,
-        message: `Hi! Your oder for $${totalAmount} has been placed successfully.`
-      });
-    } catch (emailErr) {
-      console.error('Email failed to send', emailErr);
-    }
+    const user = await User.findById(userId).select('email name').lean();
+
+    sendEmail({
+      email: user.email,
+      subject: `Order Confirmed! Order #${order._id}`,
+      message: `Hi ${user.name}! Your oder for $${totalAmount} has been placed successfully.`
+    }).catch(emailErr => console.error('Email failed to send', emailErr));
 
     return orderToDTO(order);
   } catch (err) {
     await session.abortTransaction();
-    throw err;
-  } finally {
     session.endSession();
+    throw err;
   }
 };
 
