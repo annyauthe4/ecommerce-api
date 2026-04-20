@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const sendEmail = require('../utils/email');
+const { welcomeEmailTemplate } = require('../utils/emailTemplates');
 const { hashPassword, comparePassword } = require('../utils/hash');
 const { signToken } = require('../utils/jwt');
 const { userToDTO } = require('../dtos/user.dto');
@@ -14,6 +16,12 @@ exports.register = async (data) => {
   data.password = await hashPassword(data.password);
   const user = await User.create(data);
   
+  sendEmail({
+    email: user.email,
+    subject: 'Welcome to E-Commerce Store! 🛍️',
+    html: welcomeEmailTemplate(user.name)
+  }).catch(err => console.error('Welcome email failed:', err));
+
   return {
     token: signToken({ id: user._id.toString(), role: user.role }),
     user: userToDTO(user)
