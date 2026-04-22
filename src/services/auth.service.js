@@ -18,7 +18,7 @@ exports.register = async (data) => {
   
   sendEmail({
     email: user.email,
-    subject: 'Welcome to E-Commerce Store! 🛍️',
+    subject: 'Welcome to KataKara E-Commerce Store! 🛍️',
     html: welcomeEmailTemplate(user.name)
   }).catch(err => console.error('Welcome email failed:', err));
 
